@@ -10,7 +10,7 @@ Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](h
 
 ### Standalone library
 
-The `ykhmac` library is available on PlatformIO at (TBA). It requires the [Cryptosuite2](https://platformio.org/lib/show/5829/cryptosuite2) dependency.
+The `ykhmac` library is available on PlatformIO at (TBA). It requires my fork of the *Cryptosuite2* library.
 
 ## Thanks to / Sources
 
@@ -23,5 +23,5 @@ The `ykhmac` library is available on PlatformIO at (TBA). It requires the [Crypt
 - [Arduino](https://www.arduino.cc/)
 - [Adafruit BusIO](https://platformio.org/lib/show/6214/Adafruit%20BusIO)
 - [Adafruit PN532](https://platformio.org/lib/show/29/Adafruit%20PN532)
-- [Cryptosuite2](https://platformio.org/lib/show/5829/cryptosuite2)
+- [Cryptosuite2](https://platformio.org/lib/show/5829/cryptosuite2) (fork at https://github.com/StarGate01/cryptosuite2)
 

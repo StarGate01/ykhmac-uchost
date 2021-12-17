@@ -1,0 +1,3 @@
+[submodule "lib/cryptosuite2"]
+	path = lib/cryptosuite2
+	url = git@github.com:StarGate01/cryptosuite2.git
