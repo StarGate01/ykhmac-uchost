@@ -1,0 +1,35 @@
+{
+    "name": "ykhmac",
+    "version": "0.0.1",
+    "keywords": "nfc, rfid, yubikey, hmac",
+    "description": "Logic for Yubikey-flavored HMAC-SHA1 challenge-response authentication",
+    "authors":
+    [
+        {
+            "name": "Christoph Honal",
+            "email": "christoph.honal@web.de",
+            "url": "https://chrz.de",
+            "maintainer": true
+        }
+    ],
+    "dependencies":
+    [
+        {
+            "name": "cryptosuite2",
+            "authors":
+            [
+                "Daniel Knuettel"
+            ]
+        }
+    ],
+    "repository":
+    {
+        "type": "git",
+        "url": "https://github.com/StarGate01/ykhmac-uchost.git"
+    },
+    "export": {
+        "include": [
+            "lib/ykhmac"
+        ]
+    }
+}
