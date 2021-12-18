@@ -1,55 +1,61 @@
-#include <Arduino.h>
-#include <sha/sha1.h>
+#include <Wire.h>
+#include <Adafruit_PN532.h>
+#include <ykhmac.h>
 
-void setup(void) 
+#define PN532_IRQ (2)
+#define PN532_RESET (3)
+Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET); // Use I2C
+
+
+void setup(void)
 {
     Serial.begin(115200);
     while (!Serial) delay(10);
-    Serial.print("Ready\n\n");
+    Serial.println("Starting");
+
+    // Start module communication
+    nfc.begin();
+    uint32_t versiondata = nfc.getFirmwareVersion();
+    if (!versiondata)
+    {
+        Serial.print("Cannot find PN53x module, reconnect and reset");
+        while (1);
+    }
+    Serial.print("Found chip PN5");
+    Serial.println((versiondata >> 24) & 0xFF, HEX);
+    Serial.print("Firmware ver. ");
+    Serial.print((versiondata >> 16) & 0xFF, DEC);
+    Serial.print('.');
+    Serial.println((versiondata >> 8) & 0xFF, DEC);
+
+    // Setup module
+    nfc.setPassiveActivationRetries(0xFF);
+    nfc.SAMConfig();
 }
 
-#define DATA_LEN_MAX 64
-char data[DATA_LEN_MAX + 1];
-short data_len;
 
-void loop()
+const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID;
+
+bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length,
+    uint8_t* response_buffer, uint8_t* response_length) 
 {
-    Serial.print("Enter text (max. 64 chars): ");
-   
-    data_len = 0;
-    while (true)
+    return nfc.inDataExchange(send_buffer, send_length, response_buffer, response_length);
+}
+
+void loop(void)
+{
+    Serial.println("\nWaiting for token...");
+    if (nfc.inListPassiveTarget())
     {
-        delay(1);
-        if (!Serial.available())  continue;
-        char c = Serial.read();
-        if (c == '\r') continue;
-        if (c == '\n') 
+        Serial.println("Found token");
+        
+        if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
         {
-            data[data_len] = '\0';
-            break;
+            Serial.println("Select OK");
         }
-        if (data_len < DATA_LEN_MAX)
+        else
         {
-            data[data_len] = c;
-            data_len++;
-            Serial.print(c);
+            Serial.println("Select error");
         }
     }
-    Serial.print("\n");
-
-    sha1_hasher_t hasher = sha1_hasher_new();
-    sha1_hasher_init(hasher);
-	sha1_hasher_write(hasher, data, data_len);
-    uint8_t* result = sha1_hasher_gethash(hasher);
-    
-    Serial.print("Hash: ");
-    char hxdig[2];
-    for (int i = 0; i < SHA1_HASH_LEN; i++)
-    {
-        sprintf(hxdig, "%02x", result[i]);
-        Serial.print(hxdig);
-    }
-    Serial.print("\n\n");
-
-    sha1_hasher_del(hasher);
 }
