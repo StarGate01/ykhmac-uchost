@@ -86,6 +86,31 @@ extern bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length,
     uint8_t* response_buffer, uint8_t* response_length);
 
 /**
+ * @brief Prototype declaration of random number generator
+ * 
+ * @return Random 32 bit signed integer
+ */
+extern int32_t ykhmac_random();
+
+/**
+ * @brief Prototype declaration of a persistent write function
+ * 
+ * @param data  Buffer to be written from
+ * @param size Amount of bytes to be written
+ * @return true on success
+ */
+extern bool ykhmac_presistent_write(const uint8_t *data, const uint8_t size);
+
+/**
+ * @brief Prototype declaration of a persistent read function
+ * 
+ * @param data  Buffer to be read into
+ * @param size Amount of bytes to be read
+ * @return true on success
+ */
+extern bool ykhmac_presistent_read(uint8_t *data, const uint8_t size);
+
+/**
  * @brief Selects an applet by its AID
  * 
  * @param aid The AID of the applet

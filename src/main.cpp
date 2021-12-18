@@ -1,5 +1,6 @@
 #include <Wire.h>
 #include <Adafruit_PN532.h>
+#include <EEPROM.h>
 #include <ykhmac.h>
 
 #define PN532_IRQ (2)
@@ -12,6 +13,9 @@ void setup(void)
     Serial.begin(115200);
     while (!Serial) delay(10);
     Serial.println("Starting");
+
+    // Initialize RNG, better than nothing
+    randomSeed(analogRead(0));
 
     // Start module communication
     nfc.begin();
@@ -43,15 +47,34 @@ void print_array(const uint8_t* data, const size_t size)
     }
 }
 
-// AID of the yubikey hmac applet
-const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID;
 
-// NFC data transfer function for the PN532 module
+// Specific implementations of interface methods
 bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length,
     uint8_t* response_buffer, uint8_t* response_length) 
 {
     return nfc.inDataExchange(send_buffer, send_length, response_buffer, response_length);
 }
+
+int32_t ykhmac_random()
+{
+    return random();
+}
+
+bool ykhmac_presistent_write(const uint8_t *data, const uint8_t size)
+{
+    for(uint8_t i = 0; i<size; i++) EEPROM.write(i, data[i]);
+    return true;
+}
+
+bool ykhmac_presistent_read(uint8_t *data, const uint8_t size)
+{
+    for(uint8_t i = 0; i<size; i++) data[i] = EEPROM.read(i);
+    return true;
+}
+
+
+// AID of the yubikey hmac applet
+const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID;
 
 // Example of the token interfacing functions
 void full_scan()
@@ -129,6 +152,12 @@ void simple_chalresp()
         Serial.println();
     }
     else Serial.println("Challenge-response error");
+}
+
+// Enrolls a key into the persistent storage
+void enroll()
+{
+    
 }
 
 

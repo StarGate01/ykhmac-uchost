@@ -20,6 +20,13 @@
             [
                 "Daniel Knuettel"
             ]
+        },
+        {
+            "name": "tiny-AES-c",
+            "authors":
+            [
+                "kokke"
+            ]
         }
     ],
     "repository":
