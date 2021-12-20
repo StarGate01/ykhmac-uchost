@@ -20,6 +20,8 @@ A data exchange function using the correct driver library for the NFC hardware u
 
 ```cpp
 /**
+ * @brief Declaration of NFC hardware interfacing function
+ * 
  * @param send_buffer Buffer to be sent to the target
  * @param send_length Amount of bytes to be sent
  * @param response_buffer Buffer to be read from the target
@@ -33,42 +35,50 @@ A sufficiently secure random number generator (hardware RNG, CPRNG, ...):
 
 ```cpp
 /**
- * @return Random 32 bit signed integer
+ * @brief Declaration of random number generator
+ * 
+ * @return Random byte
  */
-int32_t ykhmac_random()
+uint8_t ykhmac_random()
 ```
 
-A method to read and write a challenge buffer persistently (Flash, EEPROM ...), to enable rolling keys:
+A method to read and write a challenge buffer persistently (Flash, EEPROM ...), to enable rolling keys. At least `(HW_BUF_SIZE - SEND_BUF_OVERH - 5) + AES_BLOCKLEN + (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN)` bytes are required. Using the default configuration, this comes out at `(64 - 2 - 5) + 16 + (((20 / 16 ) + 1) * 16) = 109`.
 
 ```cpp
 /**
+ * @brief Declaration of a persistent write function
+ * 
  * @param data  Buffer to be written from
  * @param size Amount of bytes to be written
+ * @param offset Where to write the bytes to
  * @return true on success
  */
-bool ykhmac_presistent_write(const uint8_t *data, const uint8_t size)
+bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset)
 
 /**
+ * @brief Declaration of a persistent read function
+ * 
  * @param data  Buffer to be read into
  * @param size Amount of bytes to be read
+ * @param offset Where to read the bytes from
  * @return true on success
  */
-bool ykhmac_presistent_read(uint8_t *data, const uint8_t size)
+bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset)
 ```
 
 In addition, the preprocessor constant `HW_BUF_SIZE` may be defined (default `64`) to specify the size of the internal transfer buffer of the NFC chip used. The library ensures that no transfer exceeds the specified buffer size. It assumes specific protocol overheads (i.e. non-useable bytes in the transfer buffer), these can be changed by defining the constants `SEND_BUF_OVERH` (default `2`) and `RECV_BUF_OVERH` (default `8`).
 
-The size of the challenge buffer may be `min(HW_BUF_SIZE - SEND_BUF_OVERH - 5, CHALL_BUF_SIZE_MAX)` bytes at maximum. You can change the maximum length of the challenge which the token can handle by defining `CHALL_BUF_SIZE_MAX` (default `64`). Using the default values, the challenge may be `57` bytes long at maximum.
+The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum.
 
 Pay attention to the challenge padding behavior of the Yubikey: It considers the last byte as padding if and only if the challenge size is `64` bytes long (its maximum), but then also all preceding bytes of the same value.
 
-The size of the the response buffer is `20` bytes, this can by changed by defining `RESP_BUF_SIZE` depending on your token.
+The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `20`).
 
 For documentation of the library, read the header file and look at the example (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via I2C) on the `Arduino` platform.
 
-### Authentication modes
+### Authentication scheme
 
-Three modes of authentication are implemented.
+To understand how the authentication algorithm works, read [my blog post](https://chrz.de/?p=542), *"Method 4: Challenge-Response, Without Reusing Challenges but with Encrypted Keys"*. It is also documented [here](http://www.average.org/chal-resp-auth/).
 
 **Static secret key**: Both the host and the target store the secret key. The host validates the target by sending a challenge and performing 
 
