@@ -75,15 +75,15 @@ bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offse
 
 In addition, the preprocessor constant `HW_BUF_SIZE` may be defined (default `64`) to specify the size of the internal transfer buffer of the NFC chip used. The library ensures that no transfer exceeds the specified buffer size. It assumes specific protocol overheads (i.e. non-useable bytes in the transfer buffer), these can be changed by defining the constants `SEND_BUF_OVERH` (default `2`) and `RECV_BUF_OVERH` (default `8`).
 
-The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum.
+The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum. The size of the generated challenges can be configured by defining `CHALLENGE_SIZE` (default `32` due to memory constraints).
 
 Pay attention to the challenge padding behavior of the Yubikey: It considers the last byte as padding if and only if the challenge size is `64` bytes long (its maximum), but then also all preceding bytes of the same value.
 
-The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `20`).
+The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `ARG_BUF_SIZE_MAX`).
 
 Before you can use the token, the select procedure with the correct AID has to be called.
 
-For documentation of the library, read the header file and look at the examples (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via I2C) on the `Arduino` platform.
+For documentation of the library, read the header file and look at the examples (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via SPI, as I2C is not recommended due to buffer limitations) on the `Arduino` platform.
 
 ### Authentication scheme
 

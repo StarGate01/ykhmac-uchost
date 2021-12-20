@@ -36,6 +36,9 @@
     #define SECRET_KEY_SIZE     20                              //!< Size of the secret key
 #endif
 #define SECRET_KEY_SIZE_PAD     (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN) //!< Size of the secret key, padded for AES
+#ifndef CHALLENGE_SIZE
+    #define CHALLENGE_SIZE      32                              //!< Size of the generated challenges, max. SEND_BUF_SIZE
+#endif
 
 // Response codess
 #define E_SUCCESS                   0 //!< Operation was successfull 

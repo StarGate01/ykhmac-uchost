@@ -1,14 +1,11 @@
-#include <Wire.h>
 #include <Adafruit_PN532.h>
-#include <EEPROM.h>
 #include <ykhmac.h>
+#include <EEPROM.h>
 
 #include "helpers.h"
 
-
-#define PN532_IRQ (2)
-#define PN532_RESET (3)
-Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET); // Use I2C
+#define FORGET_BTN 3
+Adafruit_PN532 nfc(13, 12, 11, 10); // Use SPI
 
 // AID of the yubikey hmac applet
 const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID;
@@ -22,6 +19,9 @@ void setup(void)
 
     // Initialize RNG using ADC noise
     randomSeed(analogRead(0));
+
+    // Setup forget button
+    pinMode(FORGET_BTN, INPUT_PULLUP);
 
     // Start module communication
     nfc.begin();
@@ -42,12 +42,7 @@ void setup(void)
     nfc.setPassiveActivationRetries(0xFF);
     nfc.SAMConfig();
 
-    // Enroll key
-    uint8_t secret_key[SECRET_KEY_SIZE];
-    input_secret_key(secret_key);
-    ykhmac_enroll_key(secret_key);
-    // Purge key from RAM
-    memset(secret_key, 0, SECRET_KEY_SIZE);
+    Serial.flush();
 }
 
 
@@ -115,7 +110,7 @@ void simple_chalresp()
     const uint8_t secret_key[SECRET_KEY_SIZE] = { 0xb6, 0xe3, 0xf5, 
         0x55, 0x56, 0x2c, 0x89, 0x4b, 0x7a, 0xf1, 0x3b, 0x1d, 
         0xb3, 0x7f, 0x28, 0xde, 0xff, 0x3e, 0xa8, 0x9b };
-    const uint8_t challenge[] = { 0x42, 0x13, 0x37, 0xCA, 0xFE };
+    uint8_t challenge[] = { 0x42, 0x13, 0x37, 0xCA, 0xFE };
     uint8_t response[RESP_BUF_SIZE] = { 0 };
 
     Serial.print("Challenge: ");
@@ -143,23 +138,51 @@ void simple_chalresp()
 
 void loop(void)
 {
-    // Block until a token arrives
-    Serial.println("\nWaiting for token...");
-    if (nfc.inListPassiveTarget())
+    // First byte in EEPROM is used to mark enrollment status
+    if(!EEPROM.read(0) == 1)
     {
-        Serial.println("Found token");
-        
-        // Applet has to be selected
-        if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
-        {
-            Serial.println("Select OK");
+        // Enroll key
+        uint8_t secret_key[SECRET_KEY_SIZE];
+        input_secret_key(secret_key);
+        Serial.flush();
+        if(ykhmac_enroll_key(secret_key)) EEPROM.write(0, 1);
 
-            // Perform authentication
-            if(ykhmac_authenticate(SLOT_1))
-            {
-                Serial.println("Open door");
-            }
+        // Purge key from RAM
+        memset(secret_key, 0, SECRET_KEY_SIZE);
+        Serial.println();
+    }
+    else
+    {
+        // When the forget pin is connected to ground,
+        // the enrollment is invalidated
+        if(digitalRead(FORGET_BTN) == LOW)
+        {
+            Serial.println("Invalidating enrollment");
+            EEPROM.write(0, 0);
+            return;
         }
-        else Serial.println("Select error");
+
+        // Block until a token arrives
+        if (nfc.inListPassiveTarget())
+        {
+            Serial.println("Found token");
+            
+            // Applet has to be selected
+            if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
+            {
+                Serial.println("Select OK");
+
+                // Perform authentication
+                if(ykhmac_authenticate(SLOT_1))
+                {
+                    Serial.println("Open door");
+                }
+
+                // full_scan
+                // simple_chalresp();
+            }
+            else Serial.println("Select error");
+            Serial.println();
+        }
     }
 }

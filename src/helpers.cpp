@@ -21,7 +21,7 @@ void print_array(const uint8_t* data, const size_t size)
 // Reads a 20 byte key from the serial input
 void input_secret_key(uint8_t secret_key[SECRET_KEY_SIZE])
 {
-    Serial.print("Enter secret key (");
+    Serial.print("Enter secret key (max. ");
     Serial.print(SECRET_KEY_SIZE * 2);
     Serial.print(" hexadecimal characters): ");
    
@@ -47,7 +47,7 @@ void input_secret_key(uint8_t secret_key[SECRET_KEY_SIZE])
     // Convert string to byte array
     memset(secret_key, 0, SECRET_KEY_SIZE);
     char substr[3] = { 0 };
-    for (uint8_t i=0; i<SECRET_KEY_SIZE * 2; i+=2)
+    for (uint8_t i=0; i<data_len; i+=2)
     {
         memcpy(substr, data + i, 2);
         long b = strtol(substr, nullptr, 16);
@@ -70,29 +70,27 @@ uint8_t ykhmac_random()
 
 bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset)
 {
-    Serial.print("EEPROM write ");
-    Serial.print(size);
-    Serial.print("bytes at offset ");
-    Serial.print(offset);
-    Serial.print(": ");
-    print_array(data, size);
-    Serial.println();
+    for(size_t i = 0; i<size; i++) 
+    {
+        EEPROM.write(i + offset + 1, data[i]);
+    }
 
-    // for(size_t i = 0; i<size; i++) EEPROM.write(i + offset, data[i]);
+    //Read-back test
+    for(size_t i = 0; i<size; i++) 
+    {
+        if (EEPROM.read(i + offset + 1) != data[i]) return false;
+    }
+
     return true;
 }
 
 bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset)
 {
-    Serial.print("EEPROM read ");
-    Serial.print(size);
-    Serial.print("bytes at offset ");
-    Serial.print(offset);
-    Serial.print(": ");
-    print_array(data, size);
-    Serial.println();
+    for(size_t i = 0; i<size; i++) 
+    {
+        data[i] = EEPROM.read(i + offset + 1);
+    }
 
-    // for(size_t i = 0; i<size; i++) data[i] = EEPROM.read(i + offset);
     return true;
 }
 
