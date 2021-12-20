@@ -8,6 +8,9 @@ Tested target hardware:
  - [Fidesmo card 2.0](https://shop.fidesmo.com/products/fidesmo-card-2-0) running [vk-ykhmac](https://github.com/StarGate01/vk-ykhmac)
  - [Generic NXP P71](https://www.nxp.com/products/security-and-authentication/security-controllers/smartmx3-p71d321-secure-and-flexible-microcontroller:SMARTMX3-P71D321) running vk-ykhmac
 
+Tested host hardware:
+ - [Arduino Uno](https://store.arduino.cc/products/arduino-uno-rev3/) R3
+
 ### Development
 
 Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](https://platformio.org/) to load and compile this project. The example code is configured to build for Arduino.
