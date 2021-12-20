@@ -10,6 +10,7 @@
 #define YKHMAC_H
 
 #include <inttypes.h>
+#include <aes.hpp>
 
 // Helpers
 #define MAX(x, y)           (((x) > (y)) ? (x) : (y)) //!< Maximum of two numbers
@@ -29,13 +30,14 @@
 #define RECV_BUF_SIZE           (HW_BUF_SIZE - RECV_BUF_OVERH)  //!< Usable space of the transfer buffer for receiving
 #define ARG_BUF_SIZE_MAX        (SEND_BUF_SIZE - 5)             //!< Maximum size of an ADPU without header
 #ifndef RESP_BUF_SIZE
-    #define RESP_BUF_SIZE       20                              //!< Size of the response buffer
+    #define RESP_BUF_SIZE       20                              //!< Size of the response buffer (inherent to SHA1)
 #endif
-#ifndef CHALL_BUF_SIZE_MAX
-    #define CHALL_BUF_SIZE_MAX  64                              //!< Maximum size of the challenge buffer
+#ifndef SECRET_KEY_SIZE
+    #define SECRET_KEY_SIZE     20                              //!< Size of the secret key
 #endif
+#define SECRET_KEY_SIZE_PAD     (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN) //!< Size of the secret key, padded for AES
 
-// Response codes
+// Response codess
 #define E_SUCCESS                   0 //!< Operation was successfull 
 #define E_UNEXPECTED                1 //!< Unexpected error occurred (protocol violation)
 #define E_CARD_NOT_AUTHENTICATED    2 //!< Token requires user interaction / unlocking
@@ -71,10 +73,7 @@
 
 
 /**
- * @brief Prototype declaration of NFC hardware interfacing function.
- * 
- * This function is marked extern and has to be implemented by the user, 
- * for whichever NFC module is connected.
+ * @brief Prototype declaration of NFC hardware interfacing function
  * 
  * @param send_buffer Buffer to be sent to the target
  * @param send_length Amount of bytes to be sent
@@ -88,27 +87,29 @@ extern bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length,
 /**
  * @brief Prototype declaration of random number generator
  * 
- * @return Random 32 bit signed integer
+ * @return Random byte
  */
-extern int32_t ykhmac_random();
+extern uint8_t ykhmac_random();
 
 /**
  * @brief Prototype declaration of a persistent write function
  * 
  * @param data  Buffer to be written from
  * @param size Amount of bytes to be written
+ * @param offset Where to write the bytes to
  * @return true on success
  */
-extern bool ykhmac_presistent_write(const uint8_t *data, const uint8_t size);
+extern bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset);
 
 /**
  * @brief Prototype declaration of a persistent read function
  * 
  * @param data  Buffer to be read into
  * @param size Amount of bytes to be read
+ * @param offset Where to read the bytes from
  * @return true on success
  */
-extern bool ykhmac_presistent_read(uint8_t *data, const uint8_t size);
+extern bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset);
 
 /**
  * @brief Selects an applet by its AID
@@ -139,13 +140,13 @@ bool ykhmac_read_version(uint8_t version[3]);
  * @brief Performs a HMAC-SHA1 challenge-response exchange with the target
  * 
  * @param slot Which slot to use, either SLOT_1 or SLOT_2
- * @param input Input buffer, contains challenge
- * @param input_length Size of the input buffer in bytes, max. ARG_BUF_SIZE_MAX
- * @param output Output buffer, contains response. May be nullptr to discard response
+ * @param challenge Input buffer, contains challenge
+ * @param challenge_length Size of the input buffer in bytes, max. ARG_BUF_SIZE_MAX
+ * @param response Output buffer, contains response. May be nullptr to discard response
  * @return true on success
  */
-bool ykhmac_compute_hmac(const uint8_t slot, const uint8_t* input, 
-    const uint8_t input_length, uint8_t* output = nullptr);
+bool ykhmac_exchange_hmac(const uint8_t slot, const uint8_t* challenge, 
+    const uint8_t challenge_length, uint8_t response[RESP_BUF_SIZE] = nullptr);
 
 /**
  * @brief Tests both slots of the target for valid configurations
@@ -153,5 +154,25 @@ bool ykhmac_compute_hmac(const uint8_t slot, const uint8_t* input,
  * @return SLOT_1 | SLOT_2
  */
 uint8_t ykhmac_find_slots();
+
+/**
+ * @brief Enrolls a secret key into encrypted persistent memory
+ * 
+ * @param secret_key The secret key to be enrolled
+ * @return true on success
+ */
+bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE]);
+
+/**
+ * @brief Computes a HMAC-SHA1 response using a secret key and challenge
+ * 
+ * @param key Secret key buffer, size must be at least SECRET_KEY_SIZE
+ * @param challenge Input buffer, contains challenge
+ * @param challenge_length Size of the input buffer in bytes, max. ARG_BUF_SIZE_MAX
+ * @param response Output buffer, contains response. Must be at least RESP_BUF_SIZE
+ * @return true on success
+ */
+bool ykhmac_compute_hmac(const uint8_t* key, const uint8_t* challenge, 
+    const uint8_t challenge_length, uint8_t response[RESP_BUF_SIZE]);
 
 #endif
