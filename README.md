@@ -17,9 +17,9 @@ Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](h
 
 ### Standalone library
 
-The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. Instead, the user is required to implement various interfaces.
+The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. Instead, the user is required to implement various interfaces:
 
-A data exchange function using the correct driver library for the NFC hardware used:
+A data exchange function using the correct driver library for the NFC hardware used.
 
 ```cpp
 /**
@@ -31,10 +31,10 @@ A data exchange function using the correct driver library for the NFC hardware u
  * @param response_length Amount of bytes to be read
  * @return true on success
  */
-bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length, uint8_t* response_buffer, uint8_t* response_length)
+bool ykhmac_data_exchange(uint8_t *send_buffer, uint8_t send_length, uint8_t* response_buffer, uint8_t* response_length);
 ```
 
-A sufficiently secure random number generator (hardware RNG, CPRNG, ...):
+A sufficiently secure random number generator (hardware RNG, CPRNG, ...).
 
 ```cpp
 /**
@@ -42,7 +42,7 @@ A sufficiently secure random number generator (hardware RNG, CPRNG, ...):
  * 
  * @return Random byte
  */
-uint8_t ykhmac_random()
+uint8_t ykhmac_random();
 ```
 
 A method to read and write a challenge buffer persistently (Flash, EEPROM ...), to enable rolling keys. At least `(HW_BUF_SIZE - SEND_BUF_OVERH - 5) + AES_BLOCKLEN + (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN)` bytes are required. Using the default configuration, this comes out at `(64 - 2 - 5) + 16 + (((20 / 16 ) + 1) * 16) = 109`.
@@ -56,7 +56,7 @@ A method to read and write a challenge buffer persistently (Flash, EEPROM ...), 
  * @param offset Where to write the bytes to
  * @return true on success
  */
-bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset)
+bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset);
 
 /**
  * @brief Declaration of a persistent read function
@@ -66,7 +66,7 @@ bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_
  * @param offset Where to read the bytes from
  * @return true on success
  */
-bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset)
+bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset);
 ```
 
 In addition, the preprocessor constant `HW_BUF_SIZE` may be defined (default `64`) to specify the size of the internal transfer buffer of the NFC chip used. The library ensures that no transfer exceeds the specified buffer size. It assumes specific protocol overheads (i.e. non-useable bytes in the transfer buffer), these can be changed by defining the constants `SEND_BUF_OVERH` (default `2`) and `RECV_BUF_OVERH` (default `8`).
@@ -82,8 +82,6 @@ For documentation of the library, read the header file and look at the example (
 ### Authentication scheme
 
 To understand how the authentication algorithm works, read [my blog post](https://chrz.de/?p=542), *"Method 4: Challenge-Response, Without Reusing Challenges but with Encrypted Keys"*. It is also documented [here](http://www.average.org/chal-resp-auth/).
-
-**Static secret key**: Both the host and the target store the secret key. The host validates the target by sending a challenge and performing 
 
 ## Thanks to / Sources
 
