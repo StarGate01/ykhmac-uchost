@@ -184,59 +184,152 @@ bool ykhmac_compute_hmac(const uint8_t* key, const uint8_t* challenge,
     return true;
 }
 
-bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE])
+
+// Common buffers to save RAM
+uint8_t challenge[ARG_BUF_SIZE_MAX];
+uint8_t response[RESP_BUF_SIZE];
+uint8_t iv[AES_BLOCKLEN];
+uint8_t padded_secret_key[SECRET_KEY_SIZE_PAD];
+struct AES_ctx ctx;
+uint8_t computed_response[RESP_BUF_SIZE];
+
+bool ykhmac_purge_buffers()
 {
-    Serial.println("Enrolling key");
-    Serial.print("Using secret key:     ");
-    print_array(secret_key, SECRET_KEY_SIZE);
-    Serial.println();
-
-    // Generate random challenge
-    uint8_t challenge[ARG_BUF_SIZE_MAX];
-    for(uint8_t i; i<ARG_BUF_SIZE_MAX; i++) challenge[i] = ykhmac_random();
-    Serial.print("Random challenge:     ");
-    print_array(challenge, ARG_BUF_SIZE_MAX);
-    Serial.println();
-
-    // Compute response
-    uint8_t response[RESP_BUF_SIZE];
-    if(!ykhmac_compute_hmac(secret_key, challenge, ARG_BUF_SIZE_MAX, response)) return false;
-    Serial.print("Computed response:    ");
-    print_array(response, RESP_BUF_SIZE);
-    Serial.println();
-
-    // Pad secret key using zeros (fixed size)
-    uint8_t padded_secret_key[SECRET_KEY_SIZE_PAD] = { 0 };
-    memcpy(padded_secret_key, secret_key, SECRET_KEY_SIZE);
-    Serial.print("Padded secret key:    ");
-    print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-    Serial.println();
-
-    // Encrypt secret key using response as encryption key
-    uint8_t iv[AES_BLOCKLEN];
-    for(uint8_t i; i<AES_BLOCKLEN; i++) iv[i] = ykhmac_random();
-    Serial.print("Using IV:             ");
-    print_array(iv, AES_BLOCKLEN);
-    Serial.println();
-    struct AES_ctx ctx;
-    AES_init_ctx_iv(&ctx, response, iv);
-    AES_CBC_encrypt_buffer(&ctx, padded_secret_key, SECRET_KEY_SIZE_PAD);
-    Serial.print("Encrypted secret key: ");
-    print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-    Serial.println();
-
-    // Store challenge, iv and encrypted secret key
-    if(!ykhmac_presistent_write(challenge, ARG_BUF_SIZE_MAX, 0)) return false;
-    if(!ykhmac_presistent_write(iv, AES_BLOCKLEN, ARG_BUF_SIZE_MAX)) return false;
-    if(!ykhmac_presistent_write(padded_secret_key, SECRET_KEY_SIZE_PAD, ARG_BUF_SIZE_MAX + AES_BLOCKLEN)) return false;
-
     // Purge data from RAM
     memset(challenge, 0, ARG_BUF_SIZE_MAX);
     memset(response, 0, RESP_BUF_SIZE);
     memset(iv, 0, AES_BLOCKLEN);
     memset(padded_secret_key, 0, SECRET_KEY_SIZE_PAD);
     memset(&ctx, 0, sizeof(AES_ctx));
+    memset(computed_response, 0, RESP_BUF_SIZE);
+}
 
-    Serial.println("Successfully enrolled key");
-    return true;
+bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE])
+{
+    Serial.println("Enrolling key");
+
+    Serial.print("Using secret key:     ");
+    print_array(secret_key, SECRET_KEY_SIZE);
+    Serial.println();
+
+    bool result = false;
+
+    // Generate random challenge
+    for(uint8_t i; i<ARG_BUF_SIZE_MAX; i++) challenge[i] = ykhmac_random();
+    Serial.print("Random challenge:     ");
+    print_array(challenge, ARG_BUF_SIZE_MAX);
+    Serial.println();
+
+    // Compute response
+    if(ykhmac_compute_hmac(secret_key, challenge, ARG_BUF_SIZE_MAX, response))
+    {
+        Serial.print("Computed response:    ");
+        print_array(response, RESP_BUF_SIZE);
+        Serial.println();
+
+        // Pad secret key using zeros (fixed size)
+        memset(padded_secret_key, 0, SECRET_KEY_SIZE_PAD);
+        memcpy(padded_secret_key, secret_key, SECRET_KEY_SIZE);
+        Serial.print("Padded secret key:    ");
+        print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
+        Serial.println();
+
+        // Encrypt secret key using response as encryption key
+        for(uint8_t i; i<AES_BLOCKLEN; i++) iv[i] = ykhmac_random();
+        Serial.print("Using IV:             ");
+        print_array(iv, AES_BLOCKLEN);
+        Serial.println();
+        AES_init_ctx_iv(&ctx, response, iv);
+        AES_CBC_encrypt_buffer(&ctx, padded_secret_key, SECRET_KEY_SIZE_PAD);
+        Serial.print("Encrypted secret key: ");
+        print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
+        Serial.println();
+
+        // Store challenge, IV and encrypted secret key
+        if(ykhmac_presistent_write(challenge, ARG_BUF_SIZE_MAX, 0)
+            && ykhmac_presistent_write(iv, AES_BLOCKLEN, ARG_BUF_SIZE_MAX) 
+            && ykhmac_presistent_write(padded_secret_key, SECRET_KEY_SIZE_PAD, 
+                ARG_BUF_SIZE_MAX + AES_BLOCKLEN))
+        {
+            result = true;
+        }
+    }
+ 
+    ykhmac_purge_buffers();
+
+    if(result) Serial.println("Successfully enrolled key");
+    else Serial.println("Failed to enroll key");
+
+    return result;
+}
+
+bool ykhmac_authenticate(const uint8_t slot)
+{
+    Serial.println("Authenticating key");
+
+    bool result = false;
+
+    // Load stored challenge
+    if(ykhmac_presistent_read(challenge, ARG_BUF_SIZE_MAX, 0))
+    {
+        Serial.print("Loaded challenge:     ");
+        print_array(challenge, ARG_BUF_SIZE_MAX);
+        Serial.println();
+
+        // Perform challenge-response exchange
+        if(ykhmac_exchange_hmac(slot, challenge, ARG_BUF_SIZE_MAX, response))
+        {
+            Serial.print("Exchanged response:   ");
+            print_array(response, RESP_BUF_SIZE);
+            Serial.println();
+
+            // Load IV and secret key
+            if(ykhmac_presistent_read(iv, AES_BLOCKLEN, ARG_BUF_SIZE_MAX) 
+                && ykhmac_presistent_read(challenge, SECRET_KEY_SIZE_PAD, 
+                    ARG_BUF_SIZE_MAX + AES_BLOCKLEN))
+            {
+                Serial.print("Loaded IV:            ");
+                print_array(iv, AES_BLOCKLEN);
+                Serial.println();
+                Serial.print("Loaded secret key:    ");
+                print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
+                Serial.println();
+
+                // Decrypt secret key
+                AES_init_ctx_iv(&ctx, response, iv);
+                AES_CBC_decrypt_buffer(&ctx, padded_secret_key, SECRET_KEY_SIZE_PAD);
+                Serial.print("Decrypted secret key: ");
+                print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
+                Serial.println();
+
+                // Compute response using secret key
+                if(ykhmac_compute_hmac(padded_secret_key, challenge, ARG_BUF_SIZE_MAX, computed_response))
+                {
+                    Serial.print("Computed response:    ");
+                    print_array(computed_response, RESP_BUF_SIZE);
+                    Serial.println();
+
+                    // Check response
+                    if(memcmp(response, computed_response, RESP_BUF_SIZE) == 0)
+                    {
+                        Serial.println("Responses match");
+
+                        // Perform re-enrollment and re-encryption of the secret using a new challenge
+                        result = ykhmac_enroll_key(padded_secret_key);
+                    }
+                    else
+                    {
+                        Serial.println("Responses do not match");
+                    }
+                }
+            }
+        }
+    }
+
+    ykhmac_purge_buffers();
+
+    if(result) Serial.println("Successfully authenticated token");
+    else Serial.println("Failed to authenticate token");
+
+    return result;
 }

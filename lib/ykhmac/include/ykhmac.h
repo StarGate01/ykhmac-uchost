@@ -13,8 +13,8 @@
 #include <aes.hpp>
 
 // Helpers
-#define MAX(x, y)           (((x) > (y)) ? (x) : (y)) //!< Maximum of two numbers
-#define MIN(x, y)           (((x) < (y)) ? (x) : (y)) //!< Minimum of two numbers
+#define MAX(x, y)               (((x) > (y)) ? (x) : (y)) //!< Maximum of two numbers
+#define MIN(x, y)               (((x) < (y)) ? (x) : (y)) //!< Minimum of two numbers
 
 // Hardware limits
 #ifndef HW_BUF_SIZE
@@ -162,6 +162,17 @@ uint8_t ykhmac_find_slots();
  * @return true on success
  */
 bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE]);
+
+/**
+ * @brief tries to authenticate a target against the stored secret key
+ * 
+ * In addition, this function will advance the stored secret key.
+ * 
+ * @param slot Which slot to use, either SLOT_1 or SLOT_2
+ * 
+ * @return true on successful authentication
+ */
+bool ykhmac_authenticate(const uint8_t slot);
 
 /**
  * @brief Computes a HMAC-SHA1 response using a secret key and challenge

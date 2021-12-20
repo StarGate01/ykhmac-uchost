@@ -17,7 +17,11 @@ Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](h
 
 ### Standalone library
 
-The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. Instead, the user is required to implement various interfaces:
+The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. 
+
+This repository contains forks of both dependencies as submodules, which contains a few adjustments for PlatformIO and AVR. Most changes have been upstreamed, however e.g. the `__attribute__((__progmem__))` attribute for the AES lookup tables are AVR specific and are special to this fork.
+
+The user is required to implement various interfaces:
 
 A data exchange function using the correct driver library for the NFC hardware used.
 
@@ -77,7 +81,9 @@ Pay attention to the challenge padding behavior of the Yubikey: It considers the
 
 The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `20`).
 
-For documentation of the library, read the header file and look at the example (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via I2C) on the `Arduino` platform.
+Before you can use the token, the select procedure with the correct AID has to be called.
+
+For documentation of the library, read the header file and look at the examples (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via I2C) on the `Arduino` platform.
 
 ### Authentication scheme
 

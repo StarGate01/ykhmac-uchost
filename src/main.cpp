@@ -41,6 +41,13 @@ void setup(void)
     // Setup module
     nfc.setPassiveActivationRetries(0xFF);
     nfc.SAMConfig();
+
+    // Enroll key
+    uint8_t secret_key[SECRET_KEY_SIZE];
+    input_secret_key(secret_key);
+    ykhmac_enroll_key(secret_key);
+    // Purge key from RAM
+    memset(secret_key, 0, SECRET_KEY_SIZE);
 }
 
 
@@ -136,23 +143,23 @@ void simple_chalresp()
 
 void loop(void)
 {
-    uint8_t secret_key[SECRET_KEY_SIZE];
-    input_secret_key(secret_key);
-    ykhmac_enroll_key(secret_key);
-    // // Block until a token arrives
-    // Serial.println("\nWaiting for token...");
-    // if (nfc.inListPassiveTarget())
-    // {
-    //     Serial.println("Found token");
+    // Block until a token arrives
+    Serial.println("\nWaiting for token...");
+    if (nfc.inListPassiveTarget())
+    {
+        Serial.println("Found token");
         
-    //     // Applet has to be selected
-    //     if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
-    //     {
-    //         Serial.println("Select OK");
+        // Applet has to be selected
+        if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
+        {
+            Serial.println("Select OK");
 
-    //         //full_scan();
-    //         simple_chalresp();
-    //     }
-    //     else Serial.println("Select error");
-    // }
+            // Perform authentication
+            if(ykhmac_authenticate(SLOT_1))
+            {
+                Serial.println("Open door");
+            }
+        }
+        else Serial.println("Select error");
+    }
 }

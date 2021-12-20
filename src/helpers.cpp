@@ -70,13 +70,29 @@ uint8_t ykhmac_random()
 
 bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_t offset)
 {
-    //for(size_t i = 0; i<size; i++) EEPROM.write(i + offset, data[i]);
+    Serial.print("EEPROM write ");
+    Serial.print(size);
+    Serial.print("bytes at offset ");
+    Serial.print(offset);
+    Serial.print(": ");
+    print_array(data, size);
+    Serial.println();
+
+    // for(size_t i = 0; i<size; i++) EEPROM.write(i + offset, data[i]);
     return true;
 }
 
 bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset)
 {
-    //for(size_t i = 0; i<size; i++) data[i] = EEPROM.read(i + offset);
+    Serial.print("EEPROM read ");
+    Serial.print(size);
+    Serial.print("bytes at offset ");
+    Serial.print(offset);
+    Serial.print(": ");
+    print_array(data, size);
+    Serial.println();
+
+    // for(size_t i = 0; i<size; i++) data[i] = EEPROM.read(i + offset);
     return true;
 }
 
