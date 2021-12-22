@@ -17,7 +17,7 @@ Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](h
 
 ### Standalone library
 
-The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. The recommendated compilation flags for those libraries are `-DSHA1_DISABLE_WRAPPER -DSHA256_DISABLE_WRAPPER -DSHA256_DISABLED -DECB=0 -DCTR=0` to minify the code size.
+The `ykhmac` library is available on [PlatformIO here](https://platformio.org/lib/show/13310/ykhmac/). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. The recommendated compilation flags for those libraries are `-DSHA1_DISABLE_WRAPPER -DSHA256_DISABLE_WRAPPER -DSHA256_DISABLED -DECB=0 -DCTR=0` to minify the code size.
 
 This repository contains forks of both dependencies as submodules, which contains a few adjustments for PlatformIO and AVR. Most changes have been upstreamed, however e.g. the `__attribute__((__progmem__))` attribute for the AES lookup tables are AVR specific and are special to this fork.
 
