@@ -1,10 +1,15 @@
+/**
+ * @file helpers.cpp
+ * @author Christoph Honal
+ * @brief Implements the functionality defined in helpers.h, as well as functions required by the ykhmac library
+ * @version 0.1
+ * @date 2021-12-17
+ */
+
 #include <EEPROM.h>
 #include <Adafruit_PN532.h>
 
 #include "helpers.h"
-
-
-extern Adafruit_PN532 nfc; // Symbol from main
 
 
 // Prints a byte array to the serial output

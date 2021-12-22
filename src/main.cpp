@@ -1,14 +1,22 @@
+/**
+ * @file main.cpp
+ * @author Christoph Honal
+ * @brief Implements some examples for the ykhmac library
+ * @version 0.1
+ * @date 2021-12-17
+ */
+
 #include <Adafruit_PN532.h>
 #include <ykhmac.h>
 #include <EEPROM.h>
 
 #include "helpers.h"
 
+
 #define FORGET_BTN 3
 Adafruit_PN532 nfc(13, 12, 11, 10); // Use SPI
 
-// AID of the yubikey hmac applet
-const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID;
+const uint8_t aid[YUBIKEY_AID_LENGTH] = YUBIKEY_AID; //!<  AID of the YubiKey HMAC applet
 
 
 void setup(void)
