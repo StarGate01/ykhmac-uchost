@@ -88,11 +88,11 @@ For example implementations, see the file `helpers.cpp`.
 
 In addition, the preprocessor constant `HW_BUF_SIZE` may be defined (default `64`) to specify the size of the internal transfer buffer of the NFC chip used. The library ensures that no transfer exceeds the specified buffer size. It assumes specific protocol overheads (i.e. non-useable bytes in the transfer buffer), these can be changed by defining the constants `SEND_BUF_OVERH` (default `2`) and `RECV_BUF_OVERH` (default `8`).
 
-The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum. The size of the generated challenges can be configured by defining `CHALLENGE_SIZE` (default `32` due to memory constraints).
+The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5 = ARG_BUF_SIZE_MAX` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum. The size of the generated challenges can be configured by defining `CHALLENGE_SIZE` (default `ARG_BUF_SIZE_MAX`).
 
 Pay attention to the challenge padding behavior of the Yubikey: It considers the last byte as padding if and only if the challenge size is `64` bytes long (its maximum), but then also all preceding bytes of the same value.
 
-The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `ARG_BUF_SIZE_MAX`).
+The size of the the response buffer is `20` bytes, this is inherent to SHA1 but can by changed by defining `RESP_BUF_SIZE` depending on your token. The size of the secret key can be changed by defining `SECRET_KEY_SIZE` (default `20`).
 
 Before you can use the token, the select procedure with the correct AID has to be called.
 
@@ -135,6 +135,28 @@ For example implementations, see the file `helpers.cpp`.
 To understand how the authentication algorithm works, read [my blog post](https://chrz.de/?p=542), *"Method 4: Challenge-Response, Without Reusing Challenges but with Encrypted Keys"*. It is also documented [here](http://www.average.org/chal-resp-auth/).
 
 <details>
+    <summary>Key enrollment log</summary>
+
+```
+Starting
+Found NFC module PN532
+Module firmware version 1.6
+Invalidating enrollment
+Enter secret key (max. 40 hexadecimal characters): b6e3f555562c894b7af13b1db37f28deff3ea89b
+Enrolling key
+Using secret key:     b6 e3 f5 55 56 2c 89 4b 7a f1 3b 1d b3 7f 28 de ff 3e a8 9b 
+Random challenge:     24 5e 5a 69 da a8 0f e6 14 f6 04 14 ef 06 3f 01 da d8 13 6f 33 64 0a 2c 9a 71 55 16 70 a6 98 a8 6e 72 bd 9e 7d 03 47 12 cc 0b a5 a6 6e 1f 3e 35 ab ca a9 93 55 4a e1 d2 a7 
+Computed response:    f8 7b 62 6d 77 ad 56 46 5f 28 c0 01 67 c7 ae 96 73 af 96 f0 
+Padded secret key:    b6 e3 f5 55 56 2c 89 4b 7a f1 3b 1d b3 7f 28 de ff 3e a8 9b 00 00 00 00 00 00 00 00 00 00 00 00 
+Using IV:             dd 99 69 62 48 97 63 c4 17 d8 16 60 f3 89 2d fa 
+Encrypted secret key: 27 19 ab 85 06 21 b6 d2 90 d2 a8 b4 1a 4a c6 7e 17 5b 57 80 8f 5e ee b9 3c 7e 16 c9 36 66 8d bd 
+Wrote data to persistent storage
+Successfully enrolled key
+```
+
+</details>
+
+<details>
     <summary>Successful authentication debug log</summary>
 
 ```
@@ -142,20 +164,20 @@ Tag number: 1
 Found token
 Select OK
 Authenticating key
-Loaded challenge:     f5 84 18 36 ba 34 f3 ef 8e d2 75 35 bd 64 0c 21 78 77 d4 d7 39 dd 6f 6d 28 16 d0 8d d9 25 89 99 
-Exchanged response:   76 dd e8 8d 8e 6c dc 5a d8 22 8c 14 4e 9a 06 00 b8 a9 d5 bc 
-Loaded IV:            11 ad 0c 25 15 a2 e1 17 79 5b c7 42 26 9a fb 56 
-Loaded secret key:    45 d0 60 c2 5f c8 4e 1a 14 cf 74 c6 8a c4 65 26 37 40 8c c1 5f a7 f4 c4 88 a8 ce 94 97 5d f7 d4 
+Loaded challenge:     24 5e 5a 69 da a8 0f e6 14 f6 04 14 ef 06 3f 01 da d8 13 6f 33 64 0a 2c 9a 71 55 16 70 a6 98 a8 6e 72 bd 9e 7d 03 47 12 cc 0b a5 a6 6e 1f 3e 35 ab ca a9 93 55 4a e1 d2 a7 
+Exchanged response:   f8 7b 62 6d 77 ad 56 46 5f 28 c0 01 67 c7 ae 96 73 af 96 f0 
+Loaded IV:            dd 99 69 62 48 97 63 c4 17 d8 16 60 f3 89 2d fa 
+Loaded secret key:    27 19 ab 85 06 21 b6 d2 90 d2 a8 b4 1a 4a c6 7e 17 5b 57 80 8f 5e ee b9 3c 7e 16 c9 36 66 8d bd 
 Decrypted secret key: b6 e3 f5 55 56 2c 89 4b 7a f1 3b 1d b3 7f 28 de ff 3e a8 9b 00 00 00 00 00 00 00 00 00 00 00 00 
-Computed response:    76 dd e8 8d 8e 6c dc 5a d8 22 8c 14 4e 9a 06 00 b8 a9 d5 bc 
+Computed response:    f8 7b 62 6d 77 ad 56 46 5f 28 c0 01 67 c7 ae 96 73 af 96 f0 
 Responses match
 Enrolling key
 Using secret key:     b6 e3 f5 55 56 2c 89 4b 7a f1 3b 1d b3 7f 28 de ff 3e a8 9b 
-Random challenge:     c7 2b 56 03 9a 40 d8 79 88 ae e6 56 0b c2 d8 c0 16 16 96 40 bf 57 55 ae 35 ba cc 05 43 23 7a 0b 
-Computed response:    ea 3a dc d0 09 11 cc 8c 75 a5 b5 73 bc fe 32 23 65 b2 30 94 
+Random challenge:     85 9d fc c0 e0 f7 8d 87 dc 35 6a 1e b4 cc 65 8b d2 cc 99 de 4d 75 f7 c9 09 eb d3 b1 2c 62 31 5d 8a 2d 94 3a c0 6c e8 c1 0e 59 57 48 5a 49 94 67 e9 c8 c8 33 2a 47 ae 33 91 
+Computed response:    30 3f 05 8f 30 89 22 d6 e8 05 52 da 94 bb 41 5f 1a 1f 50 69 
 Padded secret key:    b6 e3 f5 55 56 2c 89 4b 7a f1 3b 1d b3 7f 28 de ff 3e a8 9b 00 00 00 00 00 00 00 00 00 00 00 00 
-Using IV:             33 e8 da ab 2d c1 7c 9b a5 ab 6a 5e dd 95 b9 77 
-Encrypted secret key: c7 2e cb c8 f3 9f 9d a0 94 5a ca d8 86 31 08 07 30 34 ac 67 8f 4c e9 ad 37 e9 3a 40 65 6f 97 98 
+Using IV:             c7 23 73 fa 5d 9e 53 9f 17 bb 24 45 25 f2 62 91 
+Encrypted secret key: af 51 c3 a8 ec 6e 0a a7 93 79 54 52 4f 31 d1 a2 7f 85 42 0a 68 c3 ec 23 61 5b cb 8c f6 97 ad ba 
 Wrote data to persistent storage
 Successfully enrolled key
 Successfully authenticated token
@@ -172,12 +194,12 @@ Tag number: 1
 Found token
 Select OK
 Authenticating key
-Loaded challenge:     c7 2b 56 03 9a 40 d8 79 88 ae e6 56 0b c2 d8 c0 16 16 96 40 bf 57 55 ae 35 ba cc 05 43 23 7a 0b 
-Exchanged response:   cb bd 95 6d 08 90 a7 98 4e 15 ab 47 37 6e 7a df 31 2b 0e b3 
-Loaded IV:            33 e8 da ab 2d c1 7c 9b a5 ab 6a 5e dd 95 b9 77 
-Loaded secret key:    c7 2e cb c8 f3 9f 9d a0 94 5a ca d8 86 31 08 07 30 34 ac 67 8f 4c e9 ad 37 e9 3a 40 65 6f 97 98 
-Decrypted secret key: 26 58 66 a5 30 b3 52 21 0f 7b d5 30 8a fa bd 2a 79 3a 9c 00 ee ef a5 7c a9 ac f6 de d4 4d 2b 7c 
-Computed response:    7c 8e 90 62 96 27 8e ef af f5 ea b1 7a bb 03 eb 5c 31 44 fe 
+Loaded challenge:     85 9d fc c0 e0 f7 8d 87 dc 35 6a 1e b4 cc 65 8b d2 cc 99 de 4d 75 f7 c9 09 eb d3 b1 2c 62 31 5d 8a 2d 94 3a c0 6c e8 c1 0e 59 57 48 5a 49 94 67 e9 c8 c8 33 2a 47 ae 33 91 
+Exchanged response:   f0 91 bb 96 bd 9b 44 07 d2 05 cd 45 cc ec 05 ed 22 3d bf 9b 
+Loaded IV:            c7 23 73 fa 5d 9e 53 9f 17 bb 24 45 25 f2 62 91 
+Loaded secret key:    af 51 c3 a8 ec 6e 0a a7 93 79 54 52 4f 31 d1 a2 7f 85 42 0a 68 c3 ec 23 61 5b cb 8c f6 97 ad ba 
+Decrypted secret key: b3 e4 ac 12 ce 6d b5 61 18 64 49 1f de b4 30 3c c3 3e 3d 70 91 c8 54 45 f9 4c fb 49 9d a7 52 c8 
+Computed response:    bc 15 bb bb 14 1c b5 03 35 6b 86 3d 15 39 88 7c e0 87 b3 72 
 Responses do not match
 Failed to authenticate token
 Communication error or access denied :(
