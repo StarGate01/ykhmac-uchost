@@ -94,3 +94,12 @@ bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offse
     return true;
 }
 
+void ykhmac_debug_print(const __FlashStringHelper* message)
+{
+    Serial.print(message);
+}
+
+void ykhmac_debug_print(const char* message)
+{
+    Serial.print(message);
+}

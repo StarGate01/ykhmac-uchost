@@ -12,9 +12,33 @@
 #include <inttypes.h>
 #include <aes.hpp>
 
+// Debugging
+#ifdef YKHMAC_DEBUG
+    /**
+     * @brief Prints a zero-terminated string to a debug output
+     * 
+     * @param message The message to print
+     */
+    extern void ykhmac_debug_print(const char* message);
+
+    // On AVR Arduinos, use PROGMEM to store strings
+    #ifdef ARDUINO_ARCH_AVR
+        class __FlashStringHelper;
+
+        /**
+         * @brief Prints a Arduino PROGMEM string to a debug output
+         * 
+         * @param message The message to print
+         */
+        extern void ykhmac_debug_print(const __FlashStringHelper* message);
+    #else
+        #define F(A) A 
+    #endif
+#endif
+
 // Helpers
-#define MAX(x, y)               (((x) > (y)) ? (x) : (y)) //!< Maximum of two numbers
-#define MIN(x, y)               (((x) < (y)) ? (x) : (y)) //!< Minimum of two numbers
+#define MAX(x, y)               (((x) > (y)) ? (x) : (y))       //!< Maximum of two numbers
+#define MIN(x, y)               (((x) < (y)) ? (x) : (y))       //!< Minimum of two numbers
 
 // Hardware limits
 #ifndef HW_BUF_SIZE
@@ -122,6 +146,7 @@ extern bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_
  * @return true on success
  */
 bool ykhmac_select(const uint8_t* aid, const uint8_t aid_size);
+
 
 /**
  * @brief Reads the serial number of the target

@@ -17,7 +17,7 @@ Download [Visual Studio Code](https://code.visualstudio.com/) and [PlatformIO](h
 
 ### Standalone library
 
-The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. 
+The `ykhmac` library is available on PlatformIO at (TBA). It requires the [cryptosuite2](https://github.com/daknuett/cryptosuite2) and [tiny-AES-c](https://github.com/kokke/tiny-AES-c) libraries. Both the library and its dependencies are agnostic of any frameworks or hardware platforms. The recommendated compilation flags for those libraries are `-DSHA1_DISABLE_WRAPPER -DSHA256_DISABLE_WRAPPER -DSHA256_DISABLED -DECB=0 -DCTR=0` to minify the code size.
 
 This repository contains forks of both dependencies as submodules, which contains a few adjustments for PlatformIO and AVR. Most changes have been upstreamed, however e.g. the `__attribute__((__progmem__))` attribute for the AES lookup tables are AVR specific and are special to this fork.
 
@@ -73,6 +73,8 @@ bool ykhmac_presistent_write(const uint8_t *data, const size_t size, const size_
 bool ykhmac_presistent_read(uint8_t *data, const size_t size, const size_t offset);
 ```
 
+For example implementations, see the file `helpers.cpp`.
+
 In addition, the preprocessor constant `HW_BUF_SIZE` may be defined (default `64`) to specify the size of the internal transfer buffer of the NFC chip used. The library ensures that no transfer exceeds the specified buffer size. It assumes specific protocol overheads (i.e. non-useable bytes in the transfer buffer), these can be changed by defining the constants `SEND_BUF_OVERH` (default `2`) and `RECV_BUF_OVERH` (default `8`).
 
 The size of the challenge buffer may be `HW_BUF_SIZE - SEND_BUF_OVERH - 5` bytes at maximum. Using the default values, the challenge may be `57` bytes long at maximum. The size of the generated challenges can be configured by defining `CHALLENGE_SIZE` (default `32` due to memory constraints).
@@ -83,7 +85,34 @@ The size of the the response buffer is `20` bytes, this is inherent to SHA1 but 
 
 Before you can use the token, the select procedure with the correct AID has to be called.
 
-For documentation of the library, read the header file and look at the examples (see the `full_scan`, `simple_chalresp` etc. functions). The example code implements support for the `PN532` NFC module (via SPI, as I2C is not recommended due to buffer limitations) on the `Arduino` platform.
+For documentation of the library, read the header file and look at the example, it implement the enrollment and authentication flow. Also see the `full_scan`, `simple_chalresp` example functions. The example code implements support for the `PN532` NFC module (via SPI, as I2C is not recommended due to buffer limitations) on the `Arduino` platform.
+
+#### Debugging
+
+You can define the macro `YKHMAC_DEBUG`, which will cause the library to print all used keys and buffer transformations to the serial output. This should obviously **not be used in production**. You have to implement some printing functions.
+
+```cpp
+/**
+ * @brief Prints a zero-terminated string to a debug output
+ * 
+ * @param message The message to print
+ */
+void ykhmac_debug_print(const char* message);
+
+```
+
+On Arduino AVR platforms, the library will move all debug string to the EEPROM, for this you have to define an additional printing function:
+
+```cpp
+/**
+ * @brief Prints a Arduino PROGMEM string to a debug output
+ * 
+ * @param message The message to print
+ */
+void ykhmac_debug_print(const __FlashStringHelper* message);
+```
+
+For example implementations, see the file `helpers.cpp`.
 
 ### Authentication scheme
 

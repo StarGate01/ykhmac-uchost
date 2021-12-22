@@ -139,7 +139,7 @@ void simple_chalresp()
 void loop(void)
 {
     // First byte in EEPROM is used to mark enrollment status
-    if(!EEPROM.read(0) == 1)
+    if(EEPROM.read(0) != 1)
     {
         // Enroll key
         uint8_t secret_key[SECRET_KEY_SIZE];
@@ -175,7 +175,11 @@ void loop(void)
                 // Perform authentication
                 if(ykhmac_authenticate(SLOT_1))
                 {
-                    Serial.println("Open door");
+                    Serial.println("Access granted :)");
+                }
+                else
+                {
+                    Serial.println("Communication error or access denied :(");
                 }
 
                 // full_scan

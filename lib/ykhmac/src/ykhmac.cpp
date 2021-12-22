@@ -11,8 +11,27 @@
 #include <sha/sha1.h>
 #include <aes.hpp>
 
-#include <Arduino.h>
-extern void print_array(const uint8_t *data, const size_t size);
+
+#ifdef YKHMAC_DEBUG
+        // Print array as string to some debug output
+    #ifdef ARDUINO_ARCH_AVR
+        void ykhmac_debug_print_array(const __FlashStringHelper* prefix, 
+            const uint8_t* data, const size_t size)
+    #else
+        void ykhmac_debug_print_array(const char* prefix, const uint8_t* data, 
+            const size_t size)
+    #endif
+        {
+            ykhmac_debug_print(prefix);
+            char hxdig[4] = {0};
+            for (size_t i = 0; i < size; i++)
+            {
+                sprintf(hxdig, "%02x ", data[i]);
+                ykhmac_debug_print(hxdig);
+            }
+            ykhmac_debug_print("\n");
+        }
+#endif
 
 // Decode APDU response code
 uint8_t ykhmac_response_code(const uint8_t *recv_buffer, const uint8_t recv_length)
@@ -43,7 +62,7 @@ uint8_t ykhmac_response_code(const uint8_t *recv_buffer, const uint8_t recv_leng
     return E_UNEXPECTED;
 }
 
-// APDU exchanges
+
 bool ykhmac_select(const uint8_t *aid, const uint8_t aid_size)
 {
     if (aid_size > ARG_BUF_SIZE_MAX) return false;
@@ -225,50 +244,43 @@ bool ykhmac_compute_hmac(const uint8_t *key, const uint8_t *challenge,
 
 bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE])
 {
-    Serial.println("Enrolling key");
-
-    Serial.print("Using secret key:     ");
-    print_array(secret_key, SECRET_KEY_SIZE);
-    Serial.println();
-    Serial.flush();
+    #ifdef YKHMAC_DEBUG
+        ykhmac_debug_print(F("Enrolling key\n"));
+        ykhmac_debug_print_array(F("Using secret key:     "), secret_key, SECRET_KEY_SIZE);
+    #endif
 
     bool result = false;
 
     // Generate random challenge
     for (uint8_t i; i < CHALLENGE_SIZE; i++) challenge[i] = ykhmac_random();
-    Serial.print("Random challenge:     ");
-    print_array(challenge, CHALLENGE_SIZE);
-    Serial.println();
-    Serial.flush();
+    #ifdef YKHMAC_DEBUG
+        ykhmac_debug_print_array(F("Random challenge:     "), challenge, CHALLENGE_SIZE);
+    #endif
 
     // Compute response
     if (ykhmac_compute_hmac(secret_key, challenge, CHALLENGE_SIZE, response))
     {
-        Serial.print("Computed response:    ");
-        print_array(response, RESP_BUF_SIZE);
-        Serial.println();
-        Serial.flush();
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print_array(F("Computed response:    "), response, RESP_BUF_SIZE);
+        #endif
 
         // Pad secret key using zeros (fixed size)
         memset(padded_secret_key + SECRET_KEY_SIZE, 0, SECRET_KEY_SIZE_PAD - SECRET_KEY_SIZE_PAD);
         memcpy(padded_secret_key, secret_key, SECRET_KEY_SIZE);
-        Serial.print("Padded secret key:    ");
-        print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-        Serial.println();
-        Serial.flush();
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print_array(F("Padded secret key:    "), padded_secret_key, SECRET_KEY_SIZE_PAD);
+        #endif
 
         // Encrypt secret key using response as encryption key
         for (uint8_t i; i < AES_BLOCKLEN; i++) iv[i] = ykhmac_random();
-        Serial.print("Using IV:             ");
-        print_array(iv, AES_BLOCKLEN);
-        Serial.println();
-        Serial.flush();
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print_array(F("Using IV:             "), iv, AES_BLOCKLEN);
+        #endif
         AES_init_ctx_iv(&aes_context, response, iv);
         AES_CBC_encrypt_buffer(&aes_context, padded_secret_key, SECRET_KEY_SIZE_PAD);
-        Serial.print("Encrypted secret key: ");
-        print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-        Serial.println();
-        Serial.flush();
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print_array(F("Encrypted secret key: "), padded_secret_key, SECRET_KEY_SIZE_PAD);
+        #endif
 
         // Store challenge, IV and encrypted secret key
         if (ykhmac_presistent_write(challenge, CHALLENGE_SIZE, 0) 
@@ -276,95 +288,130 @@ bool ykhmac_enroll_key(uint8_t secret_key[SECRET_KEY_SIZE])
             && ykhmac_presistent_write(padded_secret_key, SECRET_KEY_SIZE_PAD, 
                 CHALLENGE_SIZE + AES_BLOCKLEN))
         {
+            #ifdef YKHMAC_DEBUG
+                ykhmac_debug_print(F("Wrote data to persistent storage\n"));
+            #endif
             result = true;
         }
+        else
+        {
+            #ifdef YKHMAC_DEBUG
+                ykhmac_debug_print(F("Failed to write data to persistent storage\n"));
+            #endif
+        }
+    }
+    else
+    {
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print(F("Failed to compute HMAC\n"));
+        #endif
     }
 
     ykhmac_purge_buffers();
 
-    if (result)
-        Serial.println("Successfully enrolled key");
-    else
-        Serial.println("Failed to enroll key");
+    #ifdef YKHMAC_DEBUG
+        if (result)
+            ykhmac_debug_print(F("Successfully enrolled key\n"));
+        else
+            ykhmac_debug_print(F("Failed to enroll key\n"));
+    #endif
 
     return result;
 }
 
 bool ykhmac_authenticate(const uint8_t slot)
 {
-    Serial.println("Authenticating key");
+    #ifdef YKHMAC_DEBUG
+        ykhmac_debug_print(F("Authenticating key\n"));
+    #endif
 
     bool result = false;
 
     // Load stored challenge
     if (ykhmac_presistent_read(challenge, CHALLENGE_SIZE, 0))
     {
-        Serial.print("Loaded challenge:     ");
-        print_array(challenge, CHALLENGE_SIZE);
-        Serial.println();
-        Serial.flush();
+        #ifdef YKHMAC_DEBUG
+            ykhmac_debug_print_array(F("Loaded challenge:     "), challenge, CHALLENGE_SIZE);
+        #endif
 
         // Perform challenge-response exchange
         if (ykhmac_exchange_hmac(slot, challenge, CHALLENGE_SIZE, response))
         {
-            Serial.print("Exchanged response:   ");
-            print_array(response, RESP_BUF_SIZE);
-            Serial.println();
-            Serial.flush();
+            #ifdef YKHMAC_DEBUG
+                ykhmac_debug_print_array(F("Exchanged response:   "), response, RESP_BUF_SIZE);
+            #endif
 
             // Load IV and secret key
             if (ykhmac_presistent_read(iv, AES_BLOCKLEN, CHALLENGE_SIZE) 
                 && ykhmac_presistent_read(padded_secret_key, SECRET_KEY_SIZE_PAD,
                     CHALLENGE_SIZE + AES_BLOCKLEN))
             {
-                Serial.print("Loaded IV:            ");
-                print_array(iv, AES_BLOCKLEN);
-                Serial.println();
-                Serial.flush();
-                Serial.print("Loaded secret key:    ");
-                print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-                Serial.println();
-                Serial.flush();
+                #ifdef YKHMAC_DEBUG
+                    ykhmac_debug_print_array(F("Loaded IV:            "), iv, AES_BLOCKLEN);
+                    ykhmac_debug_print_array(F("Loaded secret key:    "), padded_secret_key, SECRET_KEY_SIZE_PAD);
+                #endif
 
                 // Decrypt secret key
                 AES_init_ctx_iv(&aes_context, response, iv);
                 AES_CBC_decrypt_buffer(&aes_context, padded_secret_key, SECRET_KEY_SIZE_PAD);
-                Serial.print("Decrypted secret key: ");
-                print_array(padded_secret_key, SECRET_KEY_SIZE_PAD);
-                Serial.println();
-                Serial.flush();
+                #ifdef YKHMAC_DEBUG
+                    ykhmac_debug_print_array(F("Decrypted secret key: "), padded_secret_key, SECRET_KEY_SIZE_PAD);
+                #endif
 
                 // Compute response using secret key
                 if (ykhmac_compute_hmac(padded_secret_key, challenge, CHALLENGE_SIZE, computed_response))
                 {
-                    Serial.print("Computed response:    ");
-                    print_array(computed_response, RESP_BUF_SIZE);
-                    Serial.println();
-                    Serial.flush();
+                    #ifdef YKHMAC_DEBUG
+                        ykhmac_debug_print_array(F("Computed response:    "), computed_response, RESP_BUF_SIZE);
+                    #endif
 
                     // Check response
                     if (memcmp(response, computed_response, RESP_BUF_SIZE) == 0)
                     {
-                        Serial.println("Responses match");
+                        #ifdef YKHMAC_DEBUG
+                            ykhmac_debug_print(F("Responses match\n"));
+                        #endif
 
                         // Perform re-enrollment and re-encryption of the secret using a new challenge
                         result = ykhmac_enroll_key(padded_secret_key);
                     }
                     else
                     {
-                        Serial.println("Responses do not match");
+                        #ifdef YKHMAC_DEBUG
+                            ykhmac_debug_print(F("Responses do not match\n"));
+                        #endif
                     }
                 }
+                else
+                {
+                    #ifdef YKHMAC_DEBUG
+                        ykhmac_debug_print(F("Failed to compute HMAC\n"));
+                    #endif
+                }
             }
+            else
+            {
+                #ifdef YKHMAC_DEBUG
+                    ykhmac_debug_print(F("Failed to read data from persistent storage\n"));
+                #endif
+            }
+        }
+        else
+        {
+            #ifdef YKHMAC_DEBUG
+                ykhmac_debug_print(F("Failed to exchange HMAC\n"));
+            #endif
         }
     }
 
     ykhmac_purge_buffers();
 
-    if (result)
-        Serial.println("Successfully authenticated token");
-    else
-        Serial.println("Failed to authenticate token");
+    #ifdef YKHMAC_DEBUG
+        if (result)
+            ykhmac_debug_print(F("Successfully authenticated token\n"));
+        else
+            ykhmac_debug_print(F("Failed to authenticate token\n"));
+    #endif
 
     return result;
 }
