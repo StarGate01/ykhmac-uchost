@@ -15,7 +15,7 @@ void setup(void)
 {
     Serial.begin(115200);
     while (!Serial) delay(10);
-    Serial.println("Starting");
+    Serial.println(F("Starting"));
 
     // Initialize RNG using ADC noise
     randomSeed(analogRead(0));
@@ -28,12 +28,12 @@ void setup(void)
     uint32_t versiondata = nfc.getFirmwareVersion();
     if (!versiondata)
     {
-        Serial.print("Cannot find PN53x module, reconnect and reset");
+        Serial.print(F("Cannot find PN53x module, reconnect and reset"));
         while (1);
     }
-    Serial.print("Found NFC module PN5");
+    Serial.print(F("Found NFC module PN5"));
     Serial.println((versiondata >> 24) & 0xFF, HEX);
-    Serial.print("Module firmware version ");
+    Serial.print(F("Module firmware version "));
     Serial.print((versiondata >> 16) & 0xFF, DEC);
     Serial.print('.');
     Serial.println((versiondata >> 8) & 0xFF, DEC);
@@ -46,66 +46,8 @@ void setup(void)
 }
 
 
-// Example of the token interfacing functions
-void full_scan()
-{
-    uint32_t serial = 0;
-
-    if (ykhmac_read_serial(&serial))
-    {
-        Serial.print("Serial number: ");
-        Serial.println(serial);
-
-        uint8_t version[3] = {0};
-
-        if (ykhmac_read_version(version))
-        {
-            Serial.print("Firmware version: ");
-            Serial.print(version[0]);
-            Serial.print(".");
-            Serial.print(version[1]);
-            Serial.print(".");
-            Serial.println(version[2]);
-
-            uint8_t challenge[] = { 0x42, 0x13, 0x37, 0xCA, 0xFE };
-            uint8_t response[RESP_BUF_SIZE] = { 0 };
-
-            // Test slots
-            uint8_t slots = ykhmac_find_slots();
-            if (slots != 0) 
-            {
-                // Perform challenge-response for each slot found
-                for(uint8_t i = SLOT_1; i <= SLOT_2; i++)
-                {
-                    if (slots & i)
-                    {
-                        Serial.print("Slot ");
-                        Serial.print(i);
-                        Serial.println(" configured");
-
-                        if(ykhmac_exchange_hmac(i, challenge, 5, response))
-                        {
-                            Serial.print("  Challenge: ");
-                            print_array(challenge, 5);
-                            Serial.println();
-
-                            Serial.print("  Response: ");
-                            print_array(response, RESP_BUF_SIZE);
-                            Serial.println();
-                        }
-                        else Serial.println("Challenge-response error");
-                    }
-                }
-            }
-            else Serial.println("No slots configured");
-        }
-        else Serial.println("Read version error");
-    }
-    else Serial.println("Read serial error");
-}
-
 // Example of just challenge-response with predefined slot
-void simple_chalresp()
+void simple_chalresp(uint8_t slot)
 {
     const uint8_t secret_key[SECRET_KEY_SIZE] = { 0xb6, 0xe3, 0xf5, 
         0x55, 0x56, 0x2c, 0x89, 0x4b, 0x7a, 0xf1, 0x3b, 0x1d, 
@@ -117,7 +59,7 @@ void simple_chalresp()
     print_array(challenge, 5);
     Serial.println();
 
-    if(ykhmac_exchange_hmac(SLOT_1, challenge, 5, response))
+    if(ykhmac_exchange_hmac(slot, challenge, 5, response))
     {
         Serial.print("Response: ");
         print_array(response, RESP_BUF_SIZE);
@@ -133,6 +75,51 @@ void simple_chalresp()
         Serial.println();
     }
     else Serial.println("Challenge computation error");
+}
+
+// Example of the token interfacing functions
+void full_scan()
+{
+    uint32_t serial = 0;
+
+    if (ykhmac_read_serial(&serial))
+    {
+        Serial.print(F("Serial number: "));
+        Serial.println(serial);
+
+        uint8_t version[3] = {0};
+
+        if (ykhmac_read_version(version))
+        {
+            Serial.print(F("Firmware version: "));
+            Serial.print(version[0]);
+            Serial.print(".");
+            Serial.print(version[1]);
+            Serial.print(".");
+            Serial.println(version[2]);
+
+            // Test slots
+            uint8_t slots = ykhmac_find_slots();
+            if (slots != 0) 
+            {
+                // Perform challenge-response for each slot found
+                for(uint8_t i = SLOT_1; i <= SLOT_2; i++)
+                {
+                    if (slots & i)
+                    {
+                        Serial.print(F("Slot "));
+                        Serial.print(i);
+                        Serial.println(F(" configured"));
+
+                        simple_chalresp(i);
+                    }
+                }
+            }
+            else Serial.println(F("No slots configured"));
+        }
+        else Serial.println(F("Read version error"));
+    }
+    else Serial.println(F("Read serial error"));
 }
 
 
@@ -157,7 +144,7 @@ void loop(void)
         // the enrollment is invalidated
         if(digitalRead(FORGET_BTN) == LOW)
         {
-            Serial.println("Invalidating enrollment");
+            Serial.println(F("Invalidating enrollment"));
             EEPROM.write(0, 0);
             return;
         }
@@ -165,27 +152,27 @@ void loop(void)
         // Block until a token arrives
         if (nfc.inListPassiveTarget())
         {
-            Serial.println("Found token");
+            Serial.println(F("Found token"));
             
             // Applet has to be selected
             if (ykhmac_select(aid, YUBIKEY_AID_LENGTH))
             {
-                Serial.println("Select OK");
+                Serial.println(F("Select OK"));
 
                 // Perform authentication
                 if(ykhmac_authenticate(SLOT_1))
                 {
-                    Serial.println("Access granted :)");
+                    Serial.println(F("Access granted :)"));
                 }
                 else
                 {
-                    Serial.println("Communication error or access denied :(");
+                    Serial.println(F("Communication error or access denied :("));
                 }
 
-                // full_scan
+                // full_scan();
                 // simple_chalresp();
             }
-            else Serial.println("Select error");
+            else Serial.println(F("Select error"));
             Serial.println();
         }
     }
