@@ -165,7 +165,7 @@ Access granted :)
 </details>
 
 <details>
-    <summary>Unsuccessfully authentication debug log</summary>
+    <summary>Unsuccessful authentication debug log</summary>
 
 ```
 Tag number: 1
