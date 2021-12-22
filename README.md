@@ -58,7 +58,7 @@ uint8_t ykhmac_random();
 <details>
     <summary>A method to read and write a challenge buffer persistently</summary>
 
-    Use Flash, EEPROM, ..., to enable rolling keys. At least `(HW_BUF_SIZE - SEND_BUF_OVERH - 5) + AES_BLOCKLEN + (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN)` bytes are required. Using the default configuration, this comes out at `(64 - 2 - 5) + 16 + (((20 / 16 ) + 1) * 16) = 109`.
+Use Flash, EEPROM, ..., to enable rolling keys. At least `(HW_BUF_SIZE - SEND_BUF_OVERH - 5) + AES_BLOCKLEN + (((SECRET_KEY_SIZE / AES_BLOCKLEN) + 1) * AES_BLOCKLEN)` bytes are required. Using the default configuration, this comes out at `(64 - 2 - 5) + 16 + (((20 / 16 ) + 1) * 16) = 109`.
 
 ```cpp
 /**
