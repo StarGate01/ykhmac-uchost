@@ -2,6 +2,8 @@
 
 Yubikey **HMAC-SHA1 challenge-response** authentication via **NFC** for embedded host systems.
 
+[Blog post for more details](https://chrz.de/2021/12/22/nfc-hacking-part-1-authentication-systems-security/).
+
 Tested target hardware:
  - [Yubikey 5 NFC](https://www.yubico.com/de/product/yubikey-5-nfc/) version 5.4.3
  - Yubikey 5 NFC version 5.2.6
